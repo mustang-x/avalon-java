@@ -5,7 +5,9 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Description:C:\Program Files\Java\jdk1.8.0_144\bin\jconsole.exe
+ * Description: 观察堆栈信息变化
+ * C:\Program Files\Java\jdk1.8.0_144\bin\jconsole.exe
+ * 这个更详细jvisualvm.exe
  * <p>
  * @see /soure-java/pics/1544522773.jpg
  * Author:  xingye_tang@sui.com

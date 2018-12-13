@@ -18,7 +18,7 @@
 
 区别：
 
-- 聚集索引再叶子节点存储的是表中的**数据** / 非聚集索引再叶子系欸但存储的是**[索引列+主键]**
+- 聚集索引再叶子节点存储的是表中的**数据** **/** 非聚集索引在叶子索引上存储的是**[索引列+主键]**
 - 使用非聚集索引查询出数据时，拿到叶子上的**主键**再去查想要查找的**数据(回表)**
 
 联合索引(覆盖索引)&唯一索引：联合索引不一定回表(如果查询的信息只是覆盖索引的信息(字段)而已的话)
@@ -57,7 +57,105 @@
   - Read-Committed：一个事务读取到另一个事务已经提交的数据，也就是说一个事务可以看到其他事务所做的修改；能避免脏读是因为：**写操作之后释放锁的位置调整到事务提交之后**
   - Repeatable-Read：避免不可重复度是因为：**快照的时候是事务级别的**；每次读取的都是当前事务的版本，即使数据行被其他写操作修改了，也只会读取当前事务版本的数据；
 
+### **事务相关**
 
+InnoDB 里面每个事物有一个唯一的事务 ID (transaction id)，它是在事务开始的时候想 InnoDB 的事务系统申请，是按申请顺序严格递增的；
+
+每行数据也都是有多个版本的，每次事务跟新数据的时候，队徽生成一个新的数据版本，并且把 transaction id 赋值给这个数据版本的事务 ID，记为 row trx_id；同时旧的数据版本要保留，并且在新的数据版本中，能够通过信息可以直接拿到它，作为 undo log (回滚)；
+
+一个事务只需要在启动的时候，找到所有已经提交的事务 ID 的最大值，记为 up_limit_id;
+
+**对于可重复读，查询只承认事务启动前就已经提交完成的数据**
+
+**对于读提交，查询只承认在语句启动前就已经提交完成的数据**
+
+**当前读：总是读取已经提交完成的最新版本的数据**
+
+判断可见性两个规则：一个是up_limit_id ,另一个是“自己修改的”；这里用到第二个规则；
+
+Begin之后的第一个语句算启动事务
+
+```
+mysql> set global transaction isolation level repeatable read;
+mysql> select @@tx_isolation;
++-----------------+
+| @@tx_isolation  |
++-----------------+
+| REPEATABLE-READ |
++-----------------+
+1 row in set, 1 warning (0.00 sec)
+#A:
+mysql> begin;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> select k from t_learn_tx where id = 1;
++------+
+| k    |
++------+
+|    1 |
++------+
+1 row in set (0.00 sec)
+
+mysql> select k from t_learn_tx where id = 1;
++------+
+| k    |
++------+
+|    1 |
++------+
+1 row in set (0.00 sec)
+
+mysql> commit;
+Query OK, 0 rows affected (0.00 sec)
+#2
+mysql> begin;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> select k from t_learn_tx where id = 1;
++------+
+| k    |
++------+
+|    1 |
++------+
+1 row in set (0.00 sec)
+
+mysql> select k from t_learn_tx where id = 1;
++------+
+| k    |
++------+
+|    1 |
++------+
+1 row in set (0.00 sec)
+## 数据库：更新数据多事先读后写的，而这个读，只能读当前的值，成为"当前读(current read)"，类似JMM内存模型里面的关键字violet
+## 出了update语句外，select语句如果加锁，也是当前读
+## 判断可见性两个规则：一个是up_limit_id ,另一个是“自己修改的”；这里用到第二个规则
+mysql> update t_learn_tx set k = k+1 where id = 1;
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> select k from t_learn_tx where id = 1;
++------+
+| k    |
++------+
+|    3 |
++------+
+1 row in set (0.00 sec)
+
+mysql> commit;
+Query OK, 0 rows affected (0.00 sec)
+#3
+ update t_learn_tx set k = k+1 where id = 1;
+Query OK, 1 row affected (0.01 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> select * from t_learn_tx;
++----+------+
+| id | k    |
++----+------+
+|  1 |    2 |
+|  2 |    2 |
++----+------+
+2 rows in set (0.00 sec)
+```
 
 
 
@@ -88,7 +186,5 @@
   - 服务器调优及各个参数设置(缓冲/线程数)
 
 - 常见通用的join查询
-  - sql的执行顺序：FROM ON - JOIN WHERE - GROUP BY - HAVIONG - SELECT - ORDER BY - LIMIT	
-
-### 索引
+  - sql的执行顺序：FROM ON - JOIN WHERE - GROUP BY - HAVING - SELECT - ORDER BY - LIMIT	
 

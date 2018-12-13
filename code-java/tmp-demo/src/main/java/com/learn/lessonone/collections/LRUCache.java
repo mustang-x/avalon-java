@@ -30,7 +30,9 @@ public class LRUCache<K, V> extends LinkedHashMap<K,V> {
         cache.put(3, "c");
         System.out.println(cache.keySet());
         System.out.println(cache.get(1));
-        cache.put(4, "d");
+        System.out.println(cache.keySet()); // 调用到头节点
+        String key = cache.put(4, "d"); // 删除尾节点 removeEldestEntry() 返回true
+        System.out.println(key);
         System.out.println(cache.keySet());
     }
 }

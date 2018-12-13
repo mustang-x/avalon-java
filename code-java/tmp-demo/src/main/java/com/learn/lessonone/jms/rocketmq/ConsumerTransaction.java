@@ -19,18 +19,24 @@ import java.util.Set;
  * Author:  xingye_tang@sui.com
  * Date:  2018/12/10 0:28
  */
-public class ConsumerTransaction {
+public class    ConsumerTransaction {
 
     public static final Map<MessageQueue, Long> offseTable = new HashMap<>();
 
     public static void main(String[] args) throws MQClientException, RemotingException, InterruptedException, MQBrokerException {
 
+        /**
+         * 一个应用创建一个Consumer，由应用来维护此对象，可以设置为全局对象或者单例<br>
+         * 注意：ConsumerGroupName需要由应用来保证唯一 ,最好使用服务的包名区分同一服务,一类Consumer集合的名称，
+         * 这类Consumer通常消费一类消息，且消费逻辑一致
+         * PullConsumer：Consumer的一种，应用通常主动调用Consumer的拉取消息方法从Broker拉消息，主动权由应用控制
+         */
         DefaultMQPullConsumer consumer = new DefaultMQPullConsumer("ConsumerTransaction");
         consumer.setNamesrvAddr("120.78.66.32:7878");
         consumer.setInstanceName("Consumer");
         consumer.start();
 
-
+        // 拉取订阅主题的队列，默认队列大小是4
         Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues("TransactionMsgTest1");
         for (MessageQueue mq : mqs) {
             System.out.println("Consumer from the queue : [" + mq + "]");
